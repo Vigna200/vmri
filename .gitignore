@@ -1,0 +1,8 @@
+*.nii
+*.nii.gz
+alzimers/
+parkinsons/
+test/
+uploads/
+node_modules/
+__pycache__/
