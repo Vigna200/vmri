@@ -6,3 +6,16 @@ test/
 uploads/
 node_modules/
 __pycache__/
+
+backend/.venv/
+backend/__pycache__/
+backend/uploads/
+backend/vmri.db
+backend/*.pyc
+
+frontend/brain/node_modules/
+frontend/brain/build/
+frontend/frontend/node_modules/
+frontend/frontend/dist/
+
+.env
