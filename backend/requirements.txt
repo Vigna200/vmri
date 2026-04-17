@@ -1,0 +1,9 @@
+flask
+flask-cors
+joblib
+nibabel
+numpy
+scikit-image
+scikit-learn
+torch
+torch-geometric

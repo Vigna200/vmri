@@ -1,0 +1,17 @@
+html {
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+  font-family: "Trebuchet MS", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+
+a {
+  color: inherit;
+}
+
+button,
+input {
+  font: inherit;
+}
