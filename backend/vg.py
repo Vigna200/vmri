@@ -1,27 +1,19 @@
 from pathlib import Path
 from urllib.parse import quote
-import warnings
 
 import joblib
 import nibabel as nib
 import numpy as np
-import torch
-import torch.nn.functional as F
 from skimage.transform import resize
 from sklearn.ensemble import ExtraTreesClassifier
-from sklearn.exceptions import InconsistentVersionWarning
 from sklearn.metrics import classification_report, confusion_matrix
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.model_selection import StratifiedKFold, cross_val_predict, cross_val_score
 from sklearn.preprocessing import StandardScaler
-from torch_geometric.data import Data
-from torch_geometric.nn import GCNConv
 
 
 BASE_DIR = Path(__file__).resolve().parent
 TARGET_SHAPE = (16, 16, 16)
-MODEL_PATH = BASE_DIR / "model.pth"
-MODEL_SCALER_PATH = BASE_DIR / "scaler.pkl"
 REFERENCE_BUNDLE_PATH = BASE_DIR / "reference_bundle.joblib"
 CLASSIFIER_BUNDLE_PATH = BASE_DIR / "classifier_bundle.joblib"
 LABEL_MAP = {
@@ -123,25 +115,6 @@ def load_reference_bundle():
         return joblib.load(REFERENCE_BUNDLE_PATH)
     return build_reference_bundle()
 
-
-class GNN(torch.nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.conv1 = GCNConv(49, 32)
-        self.conv2 = GCNConv(32, 16)
-        self.conv3 = GCNConv(16, 8)
-        self.fc = torch.nn.Linear(8, 3)
-
-    def forward(self, data):
-        x = F.relu(self.conv1(data.x, data.edge_index, data.edge_weight))
-        x = F.dropout(x, p=0.4, training=self.training)
-        x = F.relu(self.conv2(x, data.edge_index, data.edge_weight))
-        x = F.dropout(x, p=0.3, training=self.training)
-        x = F.relu(self.conv3(x, data.edge_index, data.edge_weight))
-        x = self.fc(x)
-        return F.log_softmax(x, dim=1)
-
-
 def build_classifier_bundle():
     features_array, labels_array, _ = load_training_arrays()
 
@@ -201,26 +174,8 @@ def load_classifier_bundle():
     return build_classifier_bundle()
 
 
-def load_saved_model_bundle():
-    if not MODEL_PATH.exists() or not MODEL_SCALER_PATH.exists():
-        return None, None
-
-    try:
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", InconsistentVersionWarning)
-            model = GNN()
-            state_dict = torch.load(MODEL_PATH, map_location=torch.device("cpu"))
-            model.load_state_dict(state_dict)
-            model.eval()
-            scaler = joblib.load(MODEL_SCALER_PATH)
-            return model, scaler
-    except Exception:
-        return None, None
-
-
 REFERENCE_DATA = load_reference_bundle()
 CLASSIFIER_BUNDLE = load_classifier_bundle()
-SAVED_MODEL, SAVED_MODEL_SCALER = load_saved_model_bundle()
 
 
 def get_model_metrics():
@@ -238,7 +193,7 @@ def get_model_metrics():
         "classificationReport": report,
         "topFeatures": top_features,
         "topFeatureNames": [item["name"] for item in top_features],
-        "gnnEnabled": SAVED_MODEL is not None and SAVED_MODEL_SCALER is not None,
+        "gnnEnabled": False,
     }
 
 
@@ -290,37 +245,8 @@ def compute_classifier_probabilities(features):
     return CLASSIFIER_BUNDLE["classifier"].predict_proba(scaled_features)[0]
 
 
-def compute_model_probabilities(features):
-    if SAVED_MODEL is None or SAVED_MODEL_SCALER is None:
-        return None
-
-    try:
-        scaled_features = SAVED_MODEL_SCALER.transform([features])
-        tensor_features = torch.tensor(scaled_features, dtype=torch.float)
-        data = Data(
-            x=tensor_features,
-            edge_index=torch.tensor([[0], [0]], dtype=torch.long),
-            edge_weight=torch.tensor([1.0], dtype=torch.float),
-        )
-
-        with torch.no_grad():
-            output = SAVED_MODEL(data)
-
-        return torch.exp(output).numpy()[0]
-    except Exception:
-        return None
-
-
-def combine_probabilities(reference_probabilities, classifier_probabilities, model_probabilities):
-    if model_probabilities is None:
-        probabilities = (0.65 * classifier_probabilities) + (0.35 * reference_probabilities)
-    else:
-        probabilities = (
-            (0.55 * classifier_probabilities)
-            + (0.25 * reference_probabilities)
-            + (0.20 * model_probabilities)
-        )
-
+def combine_probabilities(reference_probabilities, classifier_probabilities):
+    probabilities = (0.65 * classifier_probabilities) + (0.35 * reference_probabilities)
     probabilities = probabilities / np.sum(probabilities)
 
     healthy_probability = float(probabilities[0])
@@ -393,11 +319,9 @@ def predict_new(file_path):
 
     reference_probabilities = compute_similarity_probabilities(scaled_features)
     classifier_probabilities = compute_classifier_probabilities(features)
-    model_probabilities = compute_model_probabilities(features)
     probabilities = combine_probabilities(
         reference_probabilities,
         classifier_probabilities,
-        model_probabilities,
     )
 
     prediction = int(np.argmax(probabilities))
@@ -411,7 +335,7 @@ def predict_new(file_path):
     model_details = {
         "referenceProbabilities": [float(value) for value in reference_probabilities],
         "classifierProbabilities": [float(value) for value in classifier_probabilities],
-        "gnnProbabilities": None if model_probabilities is None else [float(value) for value in model_probabilities],
+        "gnnProbabilities": None,
         "classifierCvMeanAccuracy": round(float(CLASSIFIER_BUNDLE["cvMeanAccuracy"]), 4),
         "sampleCount": int(CLASSIFIER_BUNDLE["sampleCount"]),
         "originalShape": [int(dimension) for dimension in raw_volume.shape],
