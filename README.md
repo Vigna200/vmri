@@ -183,7 +183,7 @@ python app.py
 
 Backend runs at:
 
-- [http://127.0.0.1:5000](http://127.0.0.1:5000)
+- [https://vmri-backendf.onrender.com](https://vmri-backendf.onrender.com)
 
 ### Frontend
 
@@ -195,7 +195,7 @@ npm start
 
 Frontend runs at:
 
-- [http://localhost:3000](http://localhost:3000)
+- - [https://vmri-frontendf.onrender.com](https://vmri-frontendf.onrender.com)
 
 ## Rebuild Model Bundles
 
@@ -223,16 +223,6 @@ This rebuilds:
 8. Compare two saved reports
 9. Ask the assistant for a handoff summary and confidence explanation
 10. Open workspace summary to show validation metrics
-
-## Resume / Portfolio Version
-
-**VMRI Desk | AI-Assisted Brain MRI Screening Workspace**
-
-Built a full-stack clinical-style MRI screening platform using React, Flask, SQLite, and machine learning for neurodegenerative disease triage. Designed an end-to-end workflow for doctor login, patient intake, NIfTI MRI upload, ensemble-based prediction, structured reporting, saved report archive, side-by-side case comparison, and a backend-driven report-aware assistant. Improved trust and explainability by surfacing model validation metrics, confidence bands, scan preview generation, and workflow-aware review states.
-
-## Viva / Presentation Explanation
-
-This project solves a workflow problem, not just a classification problem. Instead of building only a model that predicts a disease label, it builds a doctor-facing system around the model. The user can log in, upload an MRI, receive a structured report, save a final doctor impression, reopen previous studies, compare cases, and use a contextual assistant to support handoff and review. The model itself is hybrid: it combines handcrafted MRI features, reference similarity, and an ensemble classifier, while also preserving an optional GNN path. To make the system more credible, validation metrics are surfaced in the product itself.
 
 ## Current Limitations
 
