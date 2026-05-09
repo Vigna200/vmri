@@ -4,7 +4,7 @@ joblib
 nibabel
 numpy
 scikit-image
-scikit-learn
+scikit-learn==1.8.0
 torch
 torch-geometric
 gunicorn
